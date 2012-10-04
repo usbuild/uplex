@@ -1,4 +1,6 @@
 #!/usr/bin/env python
-# -*- coding:utf-8 -*-
-if __name__ == '__main__':
-    print "Hello Uplex!"
+# -*- coding:UTF-8 -*-
+f = open('sample.l', 'r')
+for line in f:
+    print line,
+f.close()
