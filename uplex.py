@@ -65,7 +65,6 @@ for line in f:
     handle_map[state](line)
 
 result = skl_str.replace('%{content}', output)
-print regexps
 
 f.close()
 
