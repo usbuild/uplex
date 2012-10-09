@@ -1,8 +1,8 @@
-import re
+%#
+hello world
+%#
 
 %%
-
-
 ->hello
 hello = "123"
 
