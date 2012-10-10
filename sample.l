@@ -2,13 +2,27 @@
 hello world
 %#
 
-%%
-->hello
-hello = "123"
-
-->world
-hello = "456"
+input = 'hello %2%31.211'
 
 %%
+->[\n]
+print 'newline',
 
-print hello,
+->[0-9]+
+print yytext,
+
+->[0-9]*\.[0-9]+
+print 'float',
+
+->[a-zA-Z][a-zA-Z0-9]*
+print 'alpha',
+
+->[\+\-\*\/\%]
+print 'operator',
+
+->.
+print yytext,
+
+%%
+
+print "Hello"

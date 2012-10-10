@@ -1,4 +1,39 @@
 #!/usr/bin/env python
 # -*- coding:UTF-8 -*-
-import  re
-%{content}
+import re
+def search(raw, reg_c):
+    rreg,rdata = None,None
+    for reg,reg_c in reg_c:
+        match = reg_c.search(raw)
+        if match != None:
+            t1, t2  = reg, match.span()[1]
+            if rdata == None or t2 > rdata:
+                rreg, rdata = reg, t2
+    return (rreg,rdata)
+
+regexps = %{regexps}
+regexps_c = [(r, re.compile('^' + r)) for r in regexps]
+input = ''
+
+#start content1
+%{content1}
+#end content1
+
+#main loop
+while True:
+    if len(input) == 0:break
+    reg, data = search(input, regexps_c)
+    if reg == None:
+        raise SyntaxError
+    else:
+        yytext = input[:data]
+        input = input[data:]
+        if 1 == 0:
+            pass
+
+%{switch}
+#end main loop
+
+#start content2
+%{content2}
+#end content2
