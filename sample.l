@@ -2,14 +2,14 @@
 hello world
 %#
 
-input = 'hello %2%31.211'
+input = 'hello%2%31.211'
 
 %%
 ->[\n]
 print 'newline',
 
 ->[0-9]+
-print yytext,
+print 'integer',
 
 ->[0-9]*\.[0-9]+
 print 'float',
