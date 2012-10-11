@@ -1,56 +1,86 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-def isopnum(num):
-    num = str(num)
-    if num.isalpha() or num.isalnum():
+class Operand:
+    def __init__(self, input_chr):
+        self.rule = input_chr
+
+class Operator:
+
+    def __init__(self, input_chr):
+        self.rule = input_chr
+
+    def validate(self, char):
         return True
-    return False
 
+class RE:
+    def __init__(self, input_str):
+        self.input = input_str
+        self.post_stack = []
+        self.tokenList = []
 
-def midtopost(midfix):
-    single = ('*', '+')
-    pritable = {'|': 1, '.': 2, '*': 3, '+': 3, '(': 0, ')': 0}
-    prechar = False
-    opstack = []
-    midfix = list(midfix)
+    @classmethod
+    def isOperand(cls, num):
+        num = str(num)
+        if num.isalpha() or num.isalnum():
+            return True
+        return False
 
-    while len(midfix) > 0:
-        char = midfix.pop(0)
-
-        if isopnum(char):
-            if prechar:
-                midfix.insert(0, char)
-                midfix.insert(0,'.')
-            else:
-                print char,
-            prechar = True
+    @classmethod
+    def readToken(cls, tokenList):
+        if cls.isOperand(tokenList[0]):
+            oper = Operand(tokenList[0])
         else:
-            prechar = False
-            if char == '(':
-                opstack.append(char)
-            elif char == ')':
-                while True:
-                    c = opstack.pop()
-                    if c == '(':
-                        break
-                    else:
-                        print c,
-            else:
-                if char in single:
-                    prechar = True
-                while len(opstack) != 0:
-                    if pritable[char] <= pritable[opstack[-1]]:
-                        print opstack.pop(),
-                    else:
-                        break
-                opstack.append(char)
-    while len(opstack) != 0:
-        print opstack.pop(),
+            oper = Operator(tokenList[0])
+        tokenList.pop(0)
+        return (oper, tokenList)#(token,返回的list)
 
+    def midToPost(self):
+        single = ('*', '+')
+        pritable = {'|': 1, '.': 2, '*': 3, '+': 3, '(': 0, ')': 0}
+        prechar = False
+        opstack = []
+        midfix = list(self.input)
+
+        while len(midfix) > 0:
+            (oper, midfix) = self.readToken(midfix)
+
+            if isinstance(oper, Operand):
+                if prechar:
+                    midfix.insert(0, oper.rule)
+                    midfix.insert(0,'.')
+                else:
+                    self.post_stack.append(oper.rule)
+                    self.tokenList.append(oper)
+                prechar = True
+            else:
+                prechar = False
+                if oper.rule == '(':
+                    opstack.append(oper.rule)
+                elif oper.rule == ')':
+                    while True:
+                        c = opstack.pop()
+                        if c == '(':
+                            break
+                        else:
+                            self.post_stack.append(c)
+                else:
+                    if oper.rule in single:
+                        prechar = True
+                    while len(opstack) != 0:
+                        if pritable[oper.rule] <= pritable[opstack[-1]]:
+                            self.post_stack.append(opstack.pop())
+                        else:
+                            break
+                    opstack.append(oper.rule)
+        while len(opstack) != 0:
+            self.post_stack.append(opstack.pop())
 
 def main():
-    midtopost('(a|b)*a')
+    st = '(a|b)'
+    r = RE(st)
+    r.midToPost()
+    print r.post_stack
 
 if __name__ == '__main__':
     main()
