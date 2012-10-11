@@ -10,6 +10,9 @@ class Operand:
 
     def validate(self, char):
         return True
+    @staticmethod
+    def getEEdge():
+        return Operand('e')
 
 
 class Operator:
@@ -139,31 +142,36 @@ class FA:#行经过节点到列
             graph.append(rown)
         return graph
 
-    def mergeOr(self, fa):
-        graph = self.merge(fa)
-        return FA(graph)
+    def expandMatrix(self, m):
+        matrix = list(m)
+        for row in matrix:
+            row.insert(0, None)
+            row.append(None)
+        matrix.insert(0, [None for s in range(0, len(matrix[0]))])
+        matrix.append([None for s in range(0, len(matrix[0]))])
+        return matrix
 
-    def mergeAnd(self, fa, op):
+    def mergeOr(self, fa):
+        graph = self.expandMatrix(self.merge(fa))
         len1 = len(self.graph)
         len2 = len(fa.graph)
-        totalLen = len1 + len2
-        graph = []
-        for row in range(0, totalLen):
-            rown = []
-            if row < len1:
-                rown = self.graph[row]
-                rown.extend([None for x in range(len1, totalLen)])
-            else:
-                rown = [None for x in range(0, len1)]
-                rown.extend(fa.graph[row - len1])
-            graph.append(rown)
 
-        graph[len1 - 1][len1] = op
-
+        graph[0][1] = Operand.getEEdge()
+        graph[0][1 + len1] = Operand.getEEdge()
+        graph[len1][len1 + len2 + 1] = Operand.getEEdge()
+        graph[len1 + len2][len1 + len2 + 1] = Operand.getEEdge()
         return FA(graph)
 
-    def mergeCircle(self, fa):
+    def mergeAnd(self, fa):
         graph = self.merge(fa)
+        graph[len(self.graph) - 1][len(self.graph)] = Operand.getEEdge()
+        return FA(graph)
+
+    def mergeCircle(self):
+        graph = self.expandMatrix(self.graph)
+        len1 = len(self.graph)
+        graph[0][1] = Operand.getEEdge()
+        graph[len1][len1 + 1] = Operand.getEEdge()
         return FA(graph)
 
     def echo(self):
@@ -183,7 +191,7 @@ class NFA:
     def compile(self):
         fa1 = FA(Operand('a'))
         fa2 = FA(Operand('b'))
-        fa1.mergeAnd(fa2, Operand('c')).echo()
+        fa1.mergeOr(fa2).echo()#e for ecsolu
 
 
 def main():
