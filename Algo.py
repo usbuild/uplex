@@ -34,6 +34,12 @@ class Operator:
 
     def isSingle(self):
         return self.rule in self.single
+    def isOr(self):
+        return self.rule == '|'
+    def isAnd(self):
+        return self.rule == '.'
+    def isCircle(self):
+        return self.rule == '*'
 
 
 class RE:
@@ -189,15 +195,29 @@ class NFA:
         self.tokens = postReg.getTokenList()
 
     def compile(self):
-        fa1 = FA(Operand('a'))
-        fa2 = FA(Operand('b'))
-        fa1.mergeOr(fa2).echo()#e for ecsolu
+        nfaStack = []
+        for token in self.tokens:
+            if isinstance(token, Operand):
+                nfaStack.append(FA(token))
+            else:
+                if token.isCircle():
+                    nfaStack.append(nfaStack.pop().mergeCircle())
+                elif token.isOr():
+                    nfa2 = nfaStack.pop()
+                    nfa1 = nfaStack.pop()
+                    nfaStack.append(nfa1.mergeOr(nfa2))
+                elif token.isAnd():
+                    nfa2 = nfaStack.pop()
+                    nfa1 = nfaStack.pop()
+                    nfaStack.append(nfa1.mergeAnd(nfa2))
+        return nfaStack
+
 
 
 def main():
-    st = '(a|[1-2])*\d{1,}'
+    st = '(a|b)*b'
     nfa = NFA(RE(st))
-    nfa.compile()
+    nfa.compile()[0].echo()
 
 if __name__ == '__main__':
     main()
