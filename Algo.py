@@ -13,7 +13,7 @@ class Operand:
 
 
 class Operator:
-    priority_table = {'|': 1, '.': 2, '*': 3, '+': 3, '{': 3, '(': 0, ')': 0}
+    priority_table = {'|': 1, '.': 2, '*': 3, '+': 3, '{': 3, '(': 0, ')': 0, 'e': 0}
     single = ('*', '+')
 
     def __init__(self, input_chr):
@@ -110,12 +110,86 @@ class RE:
         while len(opstack) != 0:
             self.tokenList.append(opstack.pop())
 
+    def getTokenList(self):
+        if len(self.tokenList) == 0:
+            self.midToPost()
+        return self.tokenList
+
+
+class FA:#行经过节点到列
+    def __init__(self, param):
+        if isinstance(param, Operand):
+            self.graph = [[None, param], [None, None]]
+        elif type(param).__name__ == 'list':
+            self.graph = param
+
+    def merge(self, fa):
+        len1 = len(self.graph)
+        len2 = len(fa.graph)
+        totalLen = len1 + len2
+        graph = []
+        for row in range(0, totalLen):
+            rown = []
+            if row < len1:
+                rown = self.graph[row]
+                rown.extend([None for x in range(len1, totalLen)])
+            else:
+                rown = [None for x in range(0, len1)]
+                rown.extend(fa.graph[row - len1])
+            graph.append(rown)
+        return graph
+
+    def mergeOr(self, fa):
+        graph = self.merge(fa)
+        return FA(graph)
+
+    def mergeAnd(self, fa, op):
+        len1 = len(self.graph)
+        len2 = len(fa.graph)
+        totalLen = len1 + len2
+        graph = []
+        for row in range(0, totalLen):
+            rown = []
+            if row < len1:
+                rown = self.graph[row]
+                rown.extend([None for x in range(len1, totalLen)])
+            else:
+                rown = [None for x in range(0, len1)]
+                rown.extend(fa.graph[row - len1])
+            graph.append(rown)
+
+        graph[len1 - 1][len1] = op
+
+        return FA(graph)
+
+    def mergeCircle(self, fa):
+        graph = self.merge(fa)
+        return FA(graph)
+
+    def echo(self):
+        for l in self.graph:
+            for a in l:
+                if a is None:
+                    print 'X',
+                else:
+                    print a.rule,
+            print ''
+
+
+class NFA:
+    def __init__(self, postReg):
+        self.tokens = postReg.getTokenList()
+
+    def compile(self):
+        fa1 = FA(Operand('a'))
+        fa2 = FA(Operand('b'))
+        fa1.mergeAnd(fa2, Operand('c')).echo()
+
 
 def main():
     st = '(a|[1-2])*\d{1,}'
-    r = RE(st)
-    r.midToPost()
-    print [(s.rule, isinstance(s, Operator)) for s in r.tokenList]
+    nfa = NFA(RE(st))
+    nfa.compile()
 
 if __name__ == '__main__':
     main()
