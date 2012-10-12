@@ -298,12 +298,14 @@ class DFA:
 
         cutStates = [startStates, endStates]
         print self.minimize(cutStates, dfaStateID)
-        print dfaStateID
         return dfaStateID, dfaState
 
     def minimize(self, cutStates, trans):
         change = True#多次划分防止遗漏，向后看
         while change:
+            change = False
+            oldState = list(cutStates)
+            oldState.sort()
             for i in range(0, len(self.nfa.getOperandList())):
                 for l in cutStates:
                     x = 0
@@ -325,8 +327,11 @@ class DFA:
                         for st in newStates[key]:
                             l.remove(st)
                     cutStates.append(l)
+            newState = list(cutStates)
+            newState.sort()
+            if newState != oldState:
+                change = True
 
-                    print cutStates
 
         return cutStates
 
