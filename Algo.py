@@ -137,70 +137,6 @@ class RE:
         return self.tokenList
 
 
-#class FA:#行经过节点到列
-#    def __init__(self, param):
-#        if isinstance(param, Operand):
-#            self.graph = [[None, param], [None, None]]
-#        elif type(param).__name__ == 'list':
-#            self.graph = param
-#
-#    def merge(self, fa):
-#        len1 = len(self.graph)
-#        len2 = len(fa.graph)
-#        totalLen = len1 + len2
-#        graph = []
-#        for row in range(0, totalLen):
-#            rown = []
-#            if row < len1:
-#                rown = self.graph[row]
-#                rown.extend([None for x in range(len1, totalLen)])
-#            else:
-#                rown = [None for x in range(0, len1)]
-#                rown.extend(fa.graph[row - len1])
-#            graph.append(rown)
-#        return graph
-#
-#    def expandMatrix(self, m):
-#        matrix = list(m)
-#        for row in matrix:
-#            row.insert(0, None)
-#            row.append(None)
-#        matrix.insert(0, [None for s in range(0, len(matrix[0]))])
-#        matrix.append([None for s in range(0, len(matrix[0]))])
-#        return matrix
-#
-#    def mergeOr(self, fa):
-#        graph = self.expandMatrix(self.merge(fa))
-#        len1 = len(self.graph)
-#        len2 = len(fa.graph)
-#
-#        graph[0][1] = Operand.getEEdge()
-#        graph[0][1 + len1] = Operand.getEEdge()
-#        graph[len1][len1 + len2 + 1] = Operand.getEEdge()
-#        graph[len1 + len2][len1 + len2 + 1] = Operand.getEEdge()
-#        return FA(graph)
-#
-#    def mergeAnd(self, fa):
-#        graph = self.merge(fa)
-#        graph[len(self.graph) - 1][len(self.graph)] = Operand.getEEdge()
-#        return FA(graph)
-#
-#    def mergeCircle(self):
-#        graph = self.expandMatrix(self.graph)
-#        len1 = len(self.graph)
-#        graph[0][1] = Operand.getEEdge()
-#        graph[len1][len1 + 1] = Operand.getEEdge()
-#        return FA(graph)
-#
-#    def echo(self):
-#        for l in self.graph:
-#            for a in l:
-#                if a is None:
-#                    print 'X',
-#                else:
-#                    print a.rule,
-#            print ''
-
 class FA:
     def __init__(self, param):
         if type(param).__name__ == 'list':
@@ -216,6 +152,9 @@ class FA:
                     operandList.append(x)
 
         return operandList
+
+    def getEndState(self):
+        return len(self.graph) - 1
 
     def merge(self, fa):
         len1 = len(self.graph)
@@ -314,11 +253,11 @@ class DFA:
 
         while q.empty() == False:
             state = q.get()
-            if state not in result:
-                result.append(state)
-                for x, y in self.nfa.graph[state]:
-                    if x == edge:
-                        q.put(y)
+#            if state not in result:
+            result.append(state)
+            for x, y in self.nfa.graph[state]:
+                if x == edge:
+                    q.put(y)
         for s in orgin:
             result.remove(s)
         return result
@@ -327,6 +266,9 @@ class DFA:
         dfaStateID = []
         dfaState = []
         opList = self.nfa.getOperandList()
+        endState = self.nfa.getEndState()
+        endStates = []
+#        startStates = []
         q = Queue()
         start = self.closure(0)
         q.put(start)
@@ -337,14 +279,58 @@ class DFA:
             for op in opList:
                 col = self.closure(self.move(curCol, op))
                 if col not in dfaState:
-                    dfaState.append(col)
-                    state.append(len(dfaState) - 1)
-                    q.put(col)
+                    if len(col) == 0:
+                        state.append(None)
+                    else:
+                        dfaState.append(col)
+                        state.append(len(dfaState) - 1)
+                        if endState in col:
+                            endStates.append(len(dfaState) - 1)
+                        q.put(col)
                 else:
                     state.append(dfaState.index(col))
             dfaStateID.append(state)
 
+        startStates = []
+        for s in range(0, len(dfaStateID)):
+            if s not in endStates:
+                startStates.append(s)
+
+        cutStates = [startStates, endStates]
+        print self.minimize(cutStates, dfaStateID)
+        print dfaStateID
         return dfaStateID, dfaState
+
+    def minimize(self, cutStates, trans):
+        change = True#多次划分防止遗漏，向后看
+        while change:
+            for i in range(0, len(self.nfa.getOperandList())):
+                for l in cutStates:
+                    x = 0
+                    if len(l) == 1:
+                        continue
+                    newStates = {}
+                    while x < len(l):
+                        next = trans[l[x]][i]
+                        if next not in l:
+                            if newStates.has_key(next) == False:
+                                newStates[next] = []
+                            newStates[next].append(l[x])
+                        x += 1
+
+                    cutStates.remove(l)
+                    for key in newStates.keys():
+                        if newStates[key] not in cutStates:
+                            cutStates.append(newStates[key])
+                        for st in newStates[key]:
+                            l.remove(st)
+                    cutStates.append(l)
+
+                    print cutStates
+
+        return cutStates
+
+
 
 
 def main():
@@ -352,8 +338,6 @@ def main():
     nfa = NFA(RE(st))
 
     states = DFA(nfa).getStates()
-    print states[0]
-    print states[1]
 
 if __name__ == '__main__':
     main()
