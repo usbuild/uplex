@@ -262,7 +262,7 @@ class DFA:
             result.remove(s)
         return result
 
-    def getStates(self):
+    def compile(self):
         dfaStateID = []
         dfaState = []
         opList = self.nfa.getOperandList()
@@ -272,6 +272,10 @@ class DFA:
         start = self.closure(0)
         q.put(start)
 #        self.nfa.echo()
+
+        if endState in start:
+            endStates.append(0)
+
         dfaState.append(start)
         while q.empty() == False:
             state = []
@@ -290,6 +294,7 @@ class DFA:
                 else:
                     state.append(dfaState.index(col))
             dfaStateID.append(state)
+
         startStates = []
         for s in range(0, len(dfaStateID)):
             if s not in endStates:
@@ -322,7 +327,6 @@ class DFA:
     def generateDFA(self):
         miniGroup = self.miniGroup
         transMatrix = self.transGraph
-
         self.dfa = range(0, len(miniGroup))
         self.start = self.innerFind(miniGroup, 0)
         self.end = list(set([self.innerFind(miniGroup, x) for x in self.endStates]))
@@ -345,7 +349,7 @@ class DFA:
             for i in range(0, len(self.nfa.getOperandList())):
                 for l in cutStates:
                     x = 0
-                    if len(l) == 1:
+                    if len(l) <= 1:
                         continue
                     newStates = {}
                     unique = 0
@@ -382,10 +386,9 @@ class DFA:
         return cutStates
 
 def main():
-    st = 'a*'
-    nfa = NFA(RE(st))
-    dfa = DFA(nfa)
-    dfa.getStates()
+    st = '(a|b)*abb'
+    dfa = DFA(NFA(RE(st)))
+    dfa.compile()
     print dfa.dfa
     print dfa.trans
     print dfa.start
