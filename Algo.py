@@ -268,10 +268,10 @@ class DFA:
         opList = self.nfa.getOperandList()
         endState = self.nfa.getEndState()
         endStates = []
-#        startStates = []
         q = Queue()
         start = self.closure(0)
         q.put(start)
+#        self.nfa.echo()
         dfaState.append(start)
         while q.empty() == False:
             state = []
@@ -292,56 +292,70 @@ class DFA:
             dfaStateID.append(state)
 
         startStates = []
+
         for s in range(0, len(dfaStateID)):
             if s not in endStates:
                 startStates.append(s)
 
         cutStates = [startStates, endStates]
         print self.minimize(cutStates, dfaStateID)
+        print dfaState
         return dfaStateID, dfaState
+
+    def cmpList(self, list1, list2):
+        if len(list1) != len(list2):
+            return False
+        for l in list2:
+            if l not in list2:
+                return False
+        return True
 
     def minimize(self, cutStates, trans):
         change = True#多次划分防止遗漏，向后看
         while change:
             change = False
             oldState = list(cutStates)
-            oldState.sort()
+
             for i in range(0, len(self.nfa.getOperandList())):
                 for l in cutStates:
                     x = 0
                     if len(l) == 1:
                         continue
                     newStates = {}
+                    unique = 0
                     while x < len(l):
                         next = trans[l[x]][i]
-                        if next not in l:
+                        if next is None:
+                            unique -= 1
+                            newStates[unique] = [l[x]]
+
+                        elif next not in l:
                             if newStates.has_key(next) == False:
                                 newStates[next] = []
                             newStates[next].append(l[x])
                         x += 1
 
+                    if len(newStates) == 0:
+                        continue
                     cutStates.remove(l)
                     for key in newStates.keys():
                         if newStates[key] not in cutStates:
                             cutStates.append(newStates[key])
                         for st in newStates[key]:
                             l.remove(st)
-                    cutStates.append(l)
-            newState = list(cutStates)
-            newState.sort()
-            if newState != oldState:
+                    if len(l) > 0:
+                        cutStates.insert(0, l)
+
+            if self.cmpList(oldState, cutStates) == False:
                 change = True
-
-
         return cutStates
 
 
 
 
 def main():
-    st = '(a|b)*abb'
+    st = '(a|b)*abc'
     nfa = NFA(RE(st))
-
     states = DFA(nfa).getStates()
 
 if __name__ == '__main__':
