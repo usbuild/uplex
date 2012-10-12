@@ -11,7 +11,7 @@ class Operand:
             self.rule = input_chr
 
     def validate(self, char):
-        return True
+        return self.rule == char
 
     @staticmethod
     def getEEdge():
@@ -224,6 +224,7 @@ class NFA:
 class DFA:
     def __init__(self, nfa):
         self.nfa = nfa.compile()[0]
+        self.compile()
 
     def closure(self, state):
         q = Queue()
@@ -385,14 +386,62 @@ class DFA:
                 change = True
         return cutStates
 
+    def getOperatorList(self):
+        return self.nfa.getOperandList()
+
+
+    def getNext(self, state, edge):
+        trans = self.trans[state]
+        idx = 0
+        try:
+            if isinstance(edge, Operand):
+                idx = self.getOperatorList().index(edge)
+            elif isinstance(edge, str):
+                idx = self.getOperatorList().index(Operand(edge))
+            else:
+                idx = int(edge)
+        except:
+            return None
+        if len(trans) <= idx:
+            return None
+        return trans[idx]
+    def isEnd(self, s):
+        return s in self.end
+
+
+
+class DFAInstance:
+    def __init__(self, fa, input_str):
+        self.fa = fa
+        self.state = fa.start
+        self.input = input_str
+
+    def validate(self):
+        state = self.state
+        for s in self.input:
+            state = self.fa.getNext(state, s)
+            if state is None:
+                return False
+        if self.fa.isEnd(state):
+            return True
+        else:
+            return False
+
+
+
+
+
 def main():
     st = '(a|b)*abb'
     dfa = DFA(NFA(RE(st)))
-    dfa.compile()
+    ins = DFAInstance(dfa, "bbaabababa")
+    print ins.validate()
+    print '========'
     print dfa.dfa
     print dfa.trans
     print dfa.start
     print dfa.end
+
 
 
 if __name__ == '__main__':
