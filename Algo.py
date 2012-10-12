@@ -125,69 +125,113 @@ class RE:
         return self.tokenList
 
 
-class FA:#行经过节点到列
-    def __init__(self, param):
-        if isinstance(param, Operand):
-            self.graph = [[None, param], [None, None]]
-        elif type(param).__name__ == 'list':
-            self.graph = param
+#class FA:#行经过节点到列
+#    def __init__(self, param):
+#        if isinstance(param, Operand):
+#            self.graph = [[None, param], [None, None]]
+#        elif type(param).__name__ == 'list':
+#            self.graph = param
+#
+#    def merge(self, fa):
+#        len1 = len(self.graph)
+#        len2 = len(fa.graph)
+#        totalLen = len1 + len2
+#        graph = []
+#        for row in range(0, totalLen):
+#            rown = []
+#            if row < len1:
+#                rown = self.graph[row]
+#                rown.extend([None for x in range(len1, totalLen)])
+#            else:
+#                rown = [None for x in range(0, len1)]
+#                rown.extend(fa.graph[row - len1])
+#            graph.append(rown)
+#        return graph
+#
+#    def expandMatrix(self, m):
+#        matrix = list(m)
+#        for row in matrix:
+#            row.insert(0, None)
+#            row.append(None)
+#        matrix.insert(0, [None for s in range(0, len(matrix[0]))])
+#        matrix.append([None for s in range(0, len(matrix[0]))])
+#        return matrix
+#
+#    def mergeOr(self, fa):
+#        graph = self.expandMatrix(self.merge(fa))
+#        len1 = len(self.graph)
+#        len2 = len(fa.graph)
+#
+#        graph[0][1] = Operand.getEEdge()
+#        graph[0][1 + len1] = Operand.getEEdge()
+#        graph[len1][len1 + len2 + 1] = Operand.getEEdge()
+#        graph[len1 + len2][len1 + len2 + 1] = Operand.getEEdge()
+#        return FA(graph)
+#
+#    def mergeAnd(self, fa):
+#        graph = self.merge(fa)
+#        graph[len(self.graph) - 1][len(self.graph)] = Operand.getEEdge()
+#        return FA(graph)
+#
+#    def mergeCircle(self):
+#        graph = self.expandMatrix(self.graph)
+#        len1 = len(self.graph)
+#        graph[0][1] = Operand.getEEdge()
+#        graph[len1][len1 + 1] = Operand.getEEdge()
+#        return FA(graph)
+#
+#    def echo(self):
+#        for l in self.graph:
+#            for a in l:
+#                if a is None:
+#                    print 'X',
+#                else:
+#                    print a.rule,
+#            print ''
 
+class FA:
+    def __init__(self, param):
+        if type(param).__name__ == 'list':
+            self.graph = param
+        elif isinstance(param, Operand):
+            self.graph = [[(param, 1)], []]
     def merge(self, fa):
         len1 = len(self.graph)
-        len2 = len(fa.graph)
-        totalLen = len1 + len2
-        graph = []
-        for row in range(0, totalLen):
-            rown = []
-            if row < len1:
-                rown = self.graph[row]
-                rown.extend([None for x in range(len1, totalLen)])
-            else:
-                rown = [None for x in range(0, len1)]
-                rown.extend(fa.graph[row - len1])
-            graph.append(rown)
+        graph = list(self.graph)
+        graph.extend([[(x, y + len1) for x,y in l] for l in fa.graph])
         return graph
-
-    def expandMatrix(self, m):
-        matrix = list(m)
-        for row in matrix:
-            row.insert(0, None)
-            row.append(None)
-        matrix.insert(0, [None for s in range(0, len(matrix[0]))])
-        matrix.append([None for s in range(0, len(matrix[0]))])
-        return matrix
-
-    def mergeOr(self, fa):
-        graph = self.expandMatrix(self.merge(fa))
-        len1 = len(self.graph)
-        len2 = len(fa.graph)
-
-        graph[0][1] = Operand.getEEdge()
-        graph[0][1 + len1] = Operand.getEEdge()
-        graph[len1][len1 + len2 + 1] = Operand.getEEdge()
-        graph[len1 + len2][len1 + len2 + 1] = Operand.getEEdge()
-        return FA(graph)
-
+    def expand(self):
+        graph = [[(x, y + 1) for x,y in l] for l in self.graph]
+        graph.insert(0, [])
+        graph.append([])
+        return graph
     def mergeAnd(self, fa):
         graph = self.merge(fa)
-        graph[len(self.graph) - 1][len(self.graph)] = Operand.getEEdge()
-        return FA(graph)
-
-    def mergeCircle(self):
-        graph = self.expandMatrix(self.graph)
         len1 = len(self.graph)
-        graph[0][1] = Operand.getEEdge()
-        graph[len1][len1 + 1] = Operand.getEEdge()
+        graph[len1 - 1].append((Operand.getEEdge(), len1))
+        return FA(graph)
+    def mergeOr(self, fa):
+        graph = FA(self.merge(fa)).expand()
+        len1 = len(self.graph)
+        len2 = len(fa.graph)
+        graph[0].extend([(Operand.getEEdge(), 1), (Operand.getEEdge(), len1 + 1)])
+        graph[len1].append((Operand.getEEdge(), len1 + len2 + 1))
+        graph[len1 + len2].append((Operand.getEEdge(), len1 + len2 + 1))
+        return FA(graph)
+    def mergeCircle(self):
+        graph = self.expand()
+        len1 = len(self.graph)
+        graph[0].append((Operand.getEEdge(), 1))
+        graph[len1].append((Operand.getEEdge(), len1 + 1))
+
+        graph[len1].append((Operand.getEEdge(), 1))
+        graph[0].append((Operand.getEEdge(), len1 + 1))
         return FA(graph)
 
     def echo(self):
         for l in self.graph:
-            for a in l:
-                if a is None:
-                    print 'X',
-                else:
-                    print a.rule,
-            print ''
+            print self.graph.index(l),[(x.rule, y) for x,y in l]
+
 
 
 class NFA:
@@ -215,7 +259,10 @@ class NFA:
 
 
 def main():
-    st = '(a|b)*b'
+    st = '(a|b)*abb'
+#    fa1 = FA(Operand('a'))
+#    fa2 = FA(Operand('b'))
+#    fa1.mergeAnd(fa2).echo()
     nfa = NFA(RE(st))
     nfa.compile()[0].echo()
 
