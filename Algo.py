@@ -290,16 +290,19 @@ class DFA:
                 else:
                     state.append(dfaState.index(col))
             dfaStateID.append(state)
-
         startStates = []
-
         for s in range(0, len(dfaStateID)):
             if s not in endStates:
                 startStates.append(s)
 
         cutStates = [startStates, endStates]
-        print self.minimize(cutStates, dfaStateID)
-        print dfaState
+        self.endStates = list(endStates)
+        self.maxDFA = list(startStates)
+        self.maxDFA.extend(endStates)
+        self.miniGroup = self.minimize(cutStates, dfaStateID)
+        self.transGraph = dfaStateID
+
+        self.generateDFA()
         return dfaStateID, dfaState
 
     def cmpList(self, list1, list2):
@@ -310,9 +313,32 @@ class DFA:
                 return False
         return True
 
+    def innerFind(self, l, element):
+        for x in range(0, len(l)):
+            if element in l[x]:
+                return x
+        return None
+
+    def generateDFA(self):
+        miniGroup = self.miniGroup
+        transMatrix = self.transGraph
+
+        self.dfa = range(0, len(miniGroup))
+        self.start = self.innerFind(miniGroup, 0)
+        self.end = list(set([self.innerFind(miniGroup, x) for x in self.endStates]))
+
+        trans = [[] for x in self.dfa]
+        for x in range(0, len(self.maxDFA)):
+            transRow = transMatrix[x]
+            newRow = []
+            for t in transRow:
+                newRow.append(self.innerFind(miniGroup, t))
+            trans[self.innerFind(miniGroup, x)] = newRow
+        self.trans = trans
+
+
     def minimize(self, cutStates, trans):
         change = True#多次划分防止遗漏，向后看
-        print "trans",trans
         while change:
             change = False
             oldState = list(cutStates)
@@ -355,13 +381,16 @@ class DFA:
                 change = True
         return cutStates
 
-
-
-
 def main():
-    st = 'abcd'
+    st = 'a*'
     nfa = NFA(RE(st))
-    states = DFA(nfa).getStates()
+    dfa = DFA(nfa)
+    dfa.getStates()
+    print dfa.dfa
+    print dfa.trans
+    print dfa.start
+    print dfa.end
+
 
 if __name__ == '__main__':
     main()
