@@ -312,10 +312,10 @@ class DFA:
 
     def minimize(self, cutStates, trans):
         change = True#多次划分防止遗漏，向后看
+        print "trans",trans
         while change:
             change = False
             oldState = list(cutStates)
-
             for i in range(0, len(self.nfa.getOperandList())):
                 for l in cutStates:
                     x = 0
@@ -330,9 +330,15 @@ class DFA:
                             newStates[unique] = [l[x]]
 
                         elif next not in l:
-                            if newStates.has_key(next) == False:
-                                newStates[next] = []
-                            newStates[next].append(l[x])
+                            for tmp in cutStates:
+                                if next in tmp:
+                                    idx = tmp
+                                    break
+
+                            idx = ','.join([str(ix) for ix in idx])#生成唯一标识key
+                            if newStates.has_key(idx) == False:
+                                newStates[idx] = []
+                            newStates[idx].append(l[x])
                         x += 1
 
                     if len(newStates) == 0:
@@ -345,7 +351,6 @@ class DFA:
                             l.remove(st)
                     if len(l) > 0:
                         cutStates.insert(0, l)
-
             if self.cmpList(oldState, cutStates) == False:
                 change = True
         return cutStates
@@ -354,7 +359,7 @@ class DFA:
 
 
 def main():
-    st = '(a|b)*abc'
+    st = 'abcd'
     nfa = NFA(RE(st))
     states = DFA(nfa).getStates()
 
