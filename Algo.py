@@ -15,18 +15,18 @@ class Operand:
 
     @staticmethod
     def getEEdge():
-        return Operand('e')
+        return Operand(0)
 
     def isEEdge(self):
-        return self.rule == 'e'
+        return self.rule == 0
 
     def __eq__(self, other):
         return self.rule == other.rule
 
 
 class Operator:
-    priority_table = {'|': 1, '.': 2, '*': 3, '+': 3, '{': 3, '(': 0, ')': 0, 'e': 0}
-    single = ('*', '+')
+    priority_table = {'|': 1, '.': 2, '*': 3, '+': 3, '?': 3, '{': 3, '(': 0, ')': 0, 'e': 0}
+    single = ('*', '+', '?')
 
     def __init__(self, input_chr):
         if type(input_chr).__name__ == 'list':
@@ -52,6 +52,9 @@ class Operator:
 
     def isCircle(self):
         return self.rule == '*'
+
+    def isEONE(self):
+        return self.rule == '?'
 
 
 class RE:
@@ -193,6 +196,15 @@ class FA:
         graph[0].append((Operand.getEEdge(), len1 + 1))
         return FA(graph)
 
+    def mergeEONE(self):
+        graph = self.expand()
+        len1 = len(self.graph)
+        graph[0].append((Operand.getEEdge(), 1))
+        graph[len1].append((Operand.getEEdge(), len1 + 1))
+        graph[0].append((Operand.getEEdge(), len1 + 1))
+        return FA(graph)
+
+
     def echo(self):
         for l in self.graph:
             print self.graph.index(l), [(x.rule, y) for x, y in l]
@@ -210,6 +222,8 @@ class NFA:
             else:
                 if token.isCircle():
                     nfaStack.append(nfaStack.pop().mergeCircle())
+                elif token.isEONE():
+                    nfaStack.append(nfaStack.pop().mergeEONE())
                 elif token.isOr():
                     nfa2 = nfaStack.pop()
                     nfa1 = nfaStack.pop()
@@ -218,6 +232,7 @@ class NFA:
                     nfa2 = nfaStack.pop()
                     nfa1 = nfaStack.pop()
                     nfaStack.append(nfa1.mergeAnd(nfa2))
+
         return nfaStack
 
 
@@ -246,7 +261,7 @@ class DFA:
 
     def move(self, state, edge):
         q = Queue()
-        result =[]
+        result = []
 
         orgin = list(state)
         for l in state:
@@ -254,7 +269,7 @@ class DFA:
 
         while q.empty() == False:
             state = q.get()
-#            if state not in result:
+            #            if state not in result:
             result.append(state)
             for x, y in self.nfa.graph[state]:
                 if x == edge:
@@ -272,13 +287,11 @@ class DFA:
         q = Queue()
         start = self.closure(0)
         q.put(start)
-#        self.nfa.echo()
 
         if endState in start:#开始状态即为结束状态
             endStates.append(0)
 
         dfaState.append(start)
-
 
         while q.empty() == False:
             state = []
@@ -309,7 +322,6 @@ class DFA:
             if len(s) == 0:
                 cutStates.remove(s)
 
-
         self.endStates = list(endStates)
         self.maxDFA = list(startStates)
         self.maxDFA.extend(endStates)
@@ -320,7 +332,7 @@ class DFA:
         for s in self.miniGroup:
             if 0 in s:#0为开始组
                 sortedStates.insert(0, s)
-            elif  len([val for val in s if val in self.endStates]) > 0 :
+            elif  len([val for val in s if val in self.endStates]) > 0:
                 sortedStates.append(s)
             else:
                 if len(s) > 0:
@@ -328,7 +340,6 @@ class DFA:
                 else:
                     sortedStates.append(s)
         self.miniGroup = list(sortedStates)
-
 
         self.generateDFA()
         return dfaStateID, dfaState
@@ -427,9 +438,9 @@ class DFA:
         if len(trans) <= idx:
             return None
         return trans[idx]
+
     def isEnd(self, s):
         return s in self.end
-
 
 
 class DFAInstance:
@@ -450,20 +461,16 @@ class DFAInstance:
             return False
 
 
-
-
-
 def main():
-    st = 'abc|abd'
+    st = '(a|b)?b'
     dfa = DFA(NFA(RE(st)))
-    ins = DFAInstance(dfa, "abe")
+    ins = DFAInstance(dfa, "b")
     print ins.validate()
     print '========'
     print dfa.dfa
     print dfa.trans
     print dfa.start
     print dfa.end
-
 
 
 if __name__ == '__main__':
