@@ -4,21 +4,37 @@
 from Queue import Queue
 
 class Operand:
+    special = ('|', '.', ']', '[', '+', '*', '?', '(', ')', '\\', '^', '{', '}')
+    E = 0
+    DOT = 1
+    WORD = 2
+    DIGIT = 3
+    SPACE = 4
+
     def __init__(self, input_chr):
         if type(input_chr).__name__ == 'list':
-            self.rule = ''.join(input_chr)
+            input_chr = ''.join(input_chr)
+        if input_chr == '.':
+            self.rule = self.DOT
+        elif input_chr == '\w':
+            self.rule = self.WORD
+        elif input_chr == '\d':
+            self.rule = self.DIGIT
+        elif input_chr == '\s':
+            self.rule = self.SPACE
+        elif input_chr == self.E:
+            self.rule = self.E
+        elif input_chr[0] == '\\' and input_chr[1] in self.special:
+            self.rule = input_chr[1:]
         else:
             self.rule = input_chr
-
-    def validate(self, char):
-        return self.rule == char
 
     @staticmethod
     def getEEdge():
         return Operand(0)
 
     def isEEdge(self):
-        return self.rule == 0
+        return self.rule == self.E
 
     def __eq__(self, other):
         return self.rule == other.rule
@@ -89,7 +105,7 @@ class RE:
     @classmethod
     def isOperand(cls, num):
         num = str(num)
-        if num.isalpha() or num.isalnum():
+        if num not in Operand.special or num in ('.'):
             return True
         return False
 
@@ -172,19 +188,22 @@ class FA:
             self.graph = [[(param, 1)], []]
         elif isinstance(param, FA):
             self.graph = list(param.graph)
+        self.operandList = []
 
     def getOperandList(self):
-        operandList = []
-        for l in self.graph:
-            for x, y in l:
-                if not x.isEEdge() and x not in operandList:
-                    operandList.append(x)
+        if len(self.operandList) == 0:
+            for l in self.graph:
+                for x, y in l:
+                    if not x.isEEdge() and x not in self.operandList:
+                        self.operandList.append(x)
 
-        return operandList
+        return self.operandList
 
     def getEndState(self):
         return len(self.graph) - 1
 
+    def resetOperandList(self):
+        self.operandList = []
     def merge(self, fa):
         len1 = len(self.graph)
         graph = list(self.graph)
@@ -336,7 +355,7 @@ class DFA:
         q = Queue()
         start = self.closure(0)
         q.put(start)
-        #        self.nfa.echo()
+#        self.nfa.echo()
         if endState in start:#开始状态即为结束状态
             endStates.append(0)
 
@@ -392,14 +411,6 @@ class DFA:
 
         self.generateDFA()
         return dfaStateID, dfaState
-
-    def cmpList(self, list1, list2):
-        if len(list1) != len(list2):
-            return False
-        for l in list2:
-            if l not in list2:
-                return False
-        return True
 
     def innerFind(self, l, element):
         for x in range(0, len(l)):
@@ -464,7 +475,7 @@ class DFA:
                             l.remove(st)
                     if len(l) > 0:
                         cutStates.insert(0, l)
-            if self.cmpList(oldState, cutStates) == False:
+            if len(oldState) != len(cutStates):
                 change = True
         return cutStates
 
@@ -511,9 +522,9 @@ class DFAInstance:
 
 
 def main():
-    st = 'b{3,8}'
+    st = '(a|b)?a+b*ab'
     dfa = DFA(NFA(RE(st)))
-    ins = DFAInstance(dfa, "2")
+    ins = DFAInstance(dfa, "baabab")
     print ins.validate()
     print '========'
     print dfa.dfa
