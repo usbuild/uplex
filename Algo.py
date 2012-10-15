@@ -42,6 +42,8 @@ class Operator:
         return self.rule == ')'
 
     def isSingle(self):
+        if self.isPeriod():
+            return True
         return self.rule in self.single
 
     def isOr(self):
@@ -55,6 +57,28 @@ class Operator:
 
     def isEONE(self):
         return self.rule == '?'
+
+    def isPlus(self):
+        return self.rule == '+'
+
+    def isPeriod(self):
+        return self.rule[0] == '{'
+
+    def getPeriod(self):
+        data = self.rule[1:-1]
+        start, end = tuple(data.split(','))
+        start = start.strip()
+        end = end.strip()
+        if len(start) == 0:
+            start = 0
+        else:
+            start = int(start)
+
+        if len(end) == 0:
+            end = None
+        else:
+            end = int(end)
+        return start, end
 
 
 class RE:
@@ -146,6 +170,8 @@ class FA:
             self.graph = param
         elif isinstance(param, Operand):
             self.graph = [[(param, 1)], []]
+        elif isinstance(param, FA):
+            self.graph = list(param.graph)
 
     def getOperandList(self):
         operandList = []
@@ -191,7 +217,6 @@ class FA:
         len1 = len(self.graph)
         graph[0].append((Operand.getEEdge(), 1))
         graph[len1].append((Operand.getEEdge(), len1 + 1))
-
         graph[len1].append((Operand.getEEdge(), 1))
         graph[0].append((Operand.getEEdge(), len1 + 1))
         return FA(graph)
@@ -203,6 +228,25 @@ class FA:
         graph[len1].append((Operand.getEEdge(), len1 + 1))
         graph[0].append((Operand.getEEdge(), len1 + 1))
         return FA(graph)
+
+
+    def mergePlus(self):
+        return self.mergeCircle().mergeAnd(self)
+
+    def mergePeriod(self, start, end):
+        if end is None:
+            nfa = self.mergeCircle()
+            for i in range(0, start):
+                nfa = nfa.mergeAnd(self)
+            return nfa
+        else:
+            eone = end - start
+            nfa = self.mergeEONE()
+            for i in range(1, eone):
+                nfa = nfa.mergeAnd(self.mergeEONE())
+            for i in range(0, start):
+                nfa = nfa.mergeAnd(self)
+            return nfa
 
 
     def echo(self):
@@ -224,6 +268,8 @@ class NFA:
                     nfaStack.append(nfaStack.pop().mergeCircle())
                 elif token.isEONE():
                     nfaStack.append(nfaStack.pop().mergeEONE())
+                elif token.isPlus():
+                    nfaStack.append(nfaStack.pop().mergePlus())
                 elif token.isOr():
                     nfa2 = nfaStack.pop()
                     nfa1 = nfaStack.pop()
@@ -232,6 +278,9 @@ class NFA:
                     nfa2 = nfaStack.pop()
                     nfa1 = nfaStack.pop()
                     nfaStack.append(nfa1.mergeAnd(nfa2))
+                elif token.isPeriod():
+                    start, end = token.getPeriod()
+                    nfaStack.append(nfaStack.pop().mergePeriod(start, end))
 
         return nfaStack
 
@@ -287,7 +336,7 @@ class DFA:
         q = Queue()
         start = self.closure(0)
         q.put(start)
-
+        #        self.nfa.echo()
         if endState in start:#开始状态即为结束状态
             endStates.append(0)
 
@@ -462,9 +511,9 @@ class DFAInstance:
 
 
 def main():
-    st = '(a|b)?b'
+    st = 'b{3,8}'
     dfa = DFA(NFA(RE(st)))
-    ins = DFAInstance(dfa, "b")
+    ins = DFAInstance(dfa, "2")
     print ins.validate()
     print '========'
     print dfa.dfa
