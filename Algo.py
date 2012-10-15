@@ -274,10 +274,12 @@ class DFA:
         q.put(start)
 #        self.nfa.echo()
 
-        if endState in start:
+        if endState in start:#开始状态即为结束状态
             endStates.append(0)
 
         dfaState.append(start)
+
+
         while q.empty() == False:
             state = []
             curCol = q.get()
@@ -302,11 +304,31 @@ class DFA:
                 startStates.append(s)
 
         cutStates = [startStates, endStates]
+
+        for s in cutStates:#清除空的组
+            if len(s) == 0:
+                cutStates.remove(s)
+
+
         self.endStates = list(endStates)
         self.maxDFA = list(startStates)
         self.maxDFA.extend(endStates)
         self.miniGroup = self.minimize(cutStates, dfaStateID)
         self.transGraph = dfaStateID
+
+        sortedStates = []#分好的组
+        for s in self.miniGroup:
+            if 0 in s:#0为开始组
+                sortedStates.insert(0, s)
+            elif  len([val for val in s if val in self.endStates]) > 0 :
+                sortedStates.append(s)
+            else:
+                if len(s) > 0:
+                    sortedStates.insert(1, s)
+                else:
+                    sortedStates.append(s)
+        self.miniGroup = list(sortedStates)
+
 
         self.generateDFA()
         return dfaStateID, dfaState
@@ -432,9 +454,9 @@ class DFAInstance:
 
 
 def main():
-    st = '(a|b)*abb'
+    st = 'abc|abd'
     dfa = DFA(NFA(RE(st)))
-    ins = DFAInstance(dfa, "bbaabababa")
+    ins = DFAInstance(dfa, "abe")
     print ins.validate()
     print '========'
     print dfa.dfa
