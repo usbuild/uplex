@@ -155,10 +155,13 @@ class RE:
                 if not oper.isLeftBracket():
                     prechar = False
                 if oper.isLeftBracket():
-                    opstack.append(oper)
                     if prechar:
+                        midfix.insert(0, oper)
                         midfix.insert(0, Operator('.'))
-                        prechar = False
+                        continue
+                    opstack.append(oper)
+                    prechar = False
+
                 elif oper.isRightBracket():
                     while True:
                         c = opstack.pop()
@@ -166,6 +169,7 @@ class RE:
                             break
                         else:
                             self.tokenList.append(c)
+                    prechar = True
                 else:
                     if oper.isSingle():
                         prechar = True
@@ -365,6 +369,7 @@ class DFA:
 
         dfaState.append(start)
 
+
         while q.empty() == False:
             state = []
             curCol = q.get()
@@ -383,6 +388,7 @@ class DFA:
                     state.append(dfaState.index(col))
             dfaStateID.append(state)
 
+
         startStates = []
         for s in range(0, len(dfaStateID)):
             if s not in endStates:
@@ -397,6 +403,7 @@ class DFA:
         self.endStates = list(endStates)
         self.maxDFA = list(startStates)
         self.maxDFA.extend(endStates)
+
         self.miniGroup = self.minimize(cutStates, dfaStateID)
         self.transGraph = dfaStateID
 
@@ -450,12 +457,14 @@ class DFA:
                     if len(l) <= 1:
                         continue
                     newStates = {}
-                    unique = 0
                     while x < len(l):
                         next = trans[l[x]][i]
+                        if l[0] == 1:
+                            pass
                         if next is None:
-                            unique -= 1
-                            newStates[unique] = [l[x]]
+                            if not newStates.has_key(-1):
+                                newStates[-1] = []
+                            newStates[-1].append(l[x])#for none state
 
                         elif next not in l:
                             for tmp in cutStates:
@@ -468,8 +477,7 @@ class DFA:
                                 newStates[idx] = []
                             newStates[idx].append(l[x])
                         x += 1
-
-                    if len(newStates) == 0:
+                    if len(newStates) <= 1:
                         continue
                     cutStates.remove(l)
                     for key in newStates.keys():
@@ -479,6 +487,7 @@ class DFA:
                             l.remove(st)
                     if len(l) > 0:
                         cutStates.insert(0, l)
+
             if len(oldState) != len(cutStates):
                 change = True
         return cutStates
@@ -526,9 +535,11 @@ class DFAInstance:
 
 
 def main():
-    st = '(a|b)*abb(a|b)*'
+    st = ''
+    re = RE(st)
+    print [ x.rule for x in re.getTokenList()]
     dfa = DFA(NFA(RE(st)))
-    ins = DFAInstance(dfa, "ababaabb")
+    ins = DFAInstance(dfa, "abaabb")
     print ins.validate()
     print '========'
     print dfa.dfa
