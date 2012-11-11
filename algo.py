@@ -152,9 +152,13 @@ class RE:
                     self.tokenList.append(oper)
                     prechar = True
             else:
-                prechar = False
+                if not oper.isLeftBracket():
+                    prechar = False
                 if oper.isLeftBracket():
                     opstack.append(oper)
+                    if prechar:
+                        midfix.insert(0, Operator('.'))
+                        prechar = False
                 elif oper.isRightBracket():
                     while True:
                         c = opstack.pop()
@@ -522,9 +526,9 @@ class DFAInstance:
 
 
 def main():
-    st = '(a|b)?a+b*ab'
+    st = '(a|b)*abb(a|b)*'
     dfa = DFA(NFA(RE(st)))
-    ins = DFAInstance(dfa, "baabab")
+    ins = DFAInstance(dfa, "ababaabb")
     print ins.validate()
     print '========'
     print dfa.dfa
