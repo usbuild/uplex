@@ -477,8 +477,12 @@ class DFA:
                                 newStates[idx] = []
                             newStates[idx].append(l[x])
                         x += 1
-                    if len(newStates) <= 1:
+                    if len(newStates) == 0:
                         continue
+
+                    if len(newStates) ==1:
+                        if len(l) == len(newStates[newStates.keys()[0]]):
+                            continue
                     cutStates.remove(l)
                     for key in newStates.keys():
                         if newStates[key] not in cutStates:
@@ -535,11 +539,11 @@ class DFAInstance:
 
 
 def main():
-    st = ''
-    re = RE(st)
-    print [ x.rule for x in re.getTokenList()]
+    st = 'aa*((bab*a)*(a|b)b*)*'
+    r = RE(st)
+    print [ x.rule for x in r.getTokenList()]
     dfa = DFA(NFA(RE(st)))
-    ins = DFAInstance(dfa, "abaabb")
+    ins = DFAInstance(dfa, "ababbaababbbb")
     print ins.validate()
     print '========'
     print dfa.dfa
