@@ -426,7 +426,7 @@ class DFA:
         q = Queue()
         start = self.closure(0)
         q.put(start)
-#        self.nfa.echo()
+        #        self.nfa.echo()
         if endState in start:#开始状态即为结束状态
             endStates.append(0)
 
@@ -563,7 +563,6 @@ class DFA:
 
     def getNext(self, state, edge):
         trans = self.trans[state]
-        idx = 0
         try:
             if isinstance(edge, Operand):
                 idx = self.getOperatorList().index(edge)
@@ -580,38 +579,79 @@ class DFA:
     def isEnd(self, s):
         return s in self.end
 
+    def pack(self):
+        result = []
+        for x in self.trans:
+            item = []
+            i = 0
+            while i < len(x):
+                if x[i] is not None:
+                    item.append((i, x[i]))
+                i += 1
+            result.append(item)
+        return (self.dfa, result, [x.rule for x in self.getOperatorList()], self.start, self.end)
+
+
+class DFAPack:
+    def __init__(self, pack):
+        self.graph, self.trans, self.oplist, self.start, self.end = pack
+
+    def getNext(self, state, edge):
+        trans = self.trans[state]
+        try:
+            idx = self.oplist.index(edge)
+        except:
+            return None
+        for (x, y) in trans:
+            if x == idx:
+                return y
+        return None
+    def isEnd(self, s):
+        return s in self.end
+
 
 class DFAInstance:
-    def __init__(self, fa, input_str):
-        self.fa = fa
-        self.state = fa.start
+    def __init__(self, pack, input_str):
+        self.pack = pack
+        self.state = pack.start
         self.input = input_str
 
     def validate(self):
         state = self.state
+        i = 0
         for s in self.input:
-            state = self.fa.getNext(state, s)
+            state = self.pack.getNext(state, s)
             if state is None:
-                return False
-        if self.fa.isEnd(state):
-            return True
+                return self.input[0:i]
+            i += 1
+        if self.pack.isEnd(state):
+            return self.input
         else:
-            return False
+            return ''
+
+
+class REList:
+    def __init__(self, res):
+        self.res = res
+        tre = '|'.join(['(' + x + ')' for x in res])
+        self.res.insert(0, tre)
+        self.dfas = [DFAPack(DFA(NFA(RE(st))).pack()) for st in self.res]
+
+    def validate(self, line):
+        i = 0
+        max_len = 0
+        while i < len(self.dfas):
+            if i == 0:
+                max_len = len(DFAInstance(self.dfas[i], line).validate())
+                if max_len == 0: return (0, None)
+            else:
+                if len(DFAInstance(self.dfas[i], line).validate()) == max_len:
+                    return (max_len, i)
+            i += 1
 
 
 def main():
-    st = '\d{2,}'
-    r = RE(st)
-    print [x.rule for x in r.getTokenList()]
-
-    dfa = DFA(NFA(RE(st)))
-    ins = DFAInstance(dfa, "112345")
-    print ins.validate()
-    print '========'
-    print dfa.dfa
-    print dfa.trans
-    print dfa.start
-    print dfa.end
+    print REList(['\\d{1}', 'ifelse']).validate('33')
 
 
 if __name__ == '__main__':
