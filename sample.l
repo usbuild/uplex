@@ -2,27 +2,38 @@
 hello world
 %#
 
-input = 'hello%2%31.211'
+input = '123if'
 
 %%
-->[\n]
-print 'newline',
 
-->[0-9]+
-print 'integer',
+->[ ]
+print 'SPACE',
 
-->[0-9]*\.[0-9]+
-print 'float',
+->;
+print 'LINEBREAK',
+-><|>|>=|<=|=
+print 'Compare',
 
-->[a-zA-Z][a-zA-Z0-9]*
-print 'alpha',
+->\{|\}|\[|\]|\(|\)
+print 'BRACKET',
 
-->[\+\-\*\/\%]
-print 'operator',
+->int|float|double|char|struct
+print 'TYPENAME',
+
+->if|else|switch|case|for|while
+print 'KEYWORD',
+
+->\+|-|\*|/
+print 'Operand',
+
+->\d+
+print 'DIGIT',
+
+->[a-zA-Z_]\w*
+print 'id',
 
 ->.
-print yytext,
+print 'Unknown',
+
 
 %%
-
-print "Hello"

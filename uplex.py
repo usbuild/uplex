@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:UTF-8 -*-
 
-import  re
+from Lex import lex
 
 f = open('sample.l', 'r')
 ST_DEFAULT = 0
@@ -19,6 +19,7 @@ before_main = True
 default_content1 = ''
 default_content2 = ''
 switch = ''
+regexps_keys = []
 
 def handle_default(line):
     global default_content1
@@ -29,14 +30,17 @@ def handle_default(line):
         default_content2 += line + "\n"
     pass
 
+
 def handle_raw(line):
     global cur_regexp
     global regexps
-    regexps[cur_regexp] += " "*12 + line + "\n"
+    regexps[cur_regexp] += " " * 12 + line + "\n"
     pass
+
 
 def handle_main(line):
     pass
+
 
 def handle_define(line):
     pass
@@ -73,24 +77,21 @@ for line in f:
     elif len(line) > 2 and line[0:2] == '->' and state in main_status:
         cur_regexp = line[2:]
         regexps[cur_regexp] = ''
+        regexps_keys.append(cur_regexp)
         state = ST_RAW
         continue
-
     handle_map[state](line)
-
-regexps_str = '['
-for line in regexps.keys():
-    switch += " "*8 + "elif reg == r'"+line+"':\n" + regexps[line] + "\n"
-    regexps_str += 'r\'' + line + '\', '
-regexps_str += ']'
+i = 0
+for line in regexps_keys:
+    switch += " " * 8 + "elif reg_pos == " + str(i) + ":\n" + regexps[line] + "\n"
+    i += 1
 
 result = skl_str.replace('%{content1}', default_content1)\
 .replace('%{content2}', default_content2)\
 .replace('%{switch}', switch)\
-.replace('%{regexps}', regexps_str)
+.replace('%{lex_packs}', "%r" % lex.DFA.pack(regexps_keys))
 
 with open('yy.lex.py', 'w') as fw:
     fw.write(result)
 
 f.close()
-
