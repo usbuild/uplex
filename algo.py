@@ -5,29 +5,79 @@ from Queue import Queue
 
 class Operand:
     special = ('|', '.', ']', '[', '+', '*', '?', '(', ')', '\\', '^', '{', '}')
+
+    s_map = {'\w': '[a-zA-Z_0-9]', '\d': '[0-9]'}
+
     E = 0
     DOT = 1
-    WORD = 2
-    DIGIT = 3
-    SPACE = 4
 
     def __init__(self, input_chr):
         if type(input_chr).__name__ == 'list':
             input_chr = ''.join(input_chr)
+        if input_chr == self.E:
+            self.rule = self.E
         if input_chr == '.':
             self.rule = self.DOT
-        elif input_chr == '\w':
-            self.rule = self.WORD
-        elif input_chr == '\d':
-            self.rule = self.DIGIT
-        elif input_chr == '\s':
-            self.rule = self.SPACE
-        elif input_chr == self.E:
-            self.rule = self.E
-        elif input_chr[0] == '\\' and input_chr[1] in self.special:
+        elif type(input_chr).__name__ == 'int':
+            self.rule = input_chr
+
+        elif len(input_chr) > 1 and input_chr[0] == '\\' and input_chr[1] in self.special:
             self.rule = input_chr[1:]
+        elif self.s_map.has_key(input_chr):
+            self.rule = self.s_map[input_chr]
         else:
             self.rule = input_chr
+
+    def getMultiChars(self):
+        result = set()
+        if self.rule == self.DOT:
+            for x in range(0, 256):
+                if chr(x) in self.special:
+                    result.add('\\' + chr(x))#TODO:
+                else:
+                    result.add(chr(x))
+            return result
+
+        tokens = list(self.rule)
+        i = 0
+        while i < len(tokens) - 1:
+            if tokens[i] == '\\':
+                tokens[i] = self.getSpecialChr(tokens[i + 1])
+                tokens.pop(i)
+            i += 1
+        reverse = False
+        tokens = tokens[1:-1]
+        if len(tokens) > 2:
+            if tokens[0] == '^':
+                tokens.pop(0)
+                reverse = True
+
+        units = []
+        while len(tokens) > 2:
+            if tokens[1] == '-':
+                units.append(''.join(tokens[0:3]))
+                tokens = tokens[3:]
+            else:
+                units.append(tokens.pop(0))
+        units.extend(tokens)
+
+        for x in range(0, 256):
+            for i in units:
+                if len(i) == 1:
+                    if chr(x) == i: result.add(chr(x))
+                else:
+                    if x <= ord(i[2]) and x >= ord(i[0]): result.add(chr(x))
+
+        if reverse:
+            result = [chr(x) for x in range(0, 256) if  chr(x) not in result]
+        return result
+
+    def getSpecialChr(self, ch):
+        return ch
+
+    def isSingleChar(self):
+        return self.rule != self.DOT and len(self.rule) == 1
+
 
     @staticmethod
     def getEEdge():
@@ -82,8 +132,12 @@ class Operator:
 
     def getPeriod(self):
         data = self.rule[1:-1]
-        start, end = tuple(data.split(','))
-        start = start.strip()
+        start = tuple(data.split(','))
+        if len(start) == 1:
+            end = start[0]
+        else:
+            end = start[1]
+        start = start[0].strip()
         end = end.strip()
         if len(start) == 0:
             start = 0
@@ -118,14 +172,14 @@ class RE:
             endPos = tokenList.index('}')
             oper = Operator(tokenList[0:endPos + 1])
             if endPos == len(tokenList) - 1:
-                return oper, ''
+                return oper, list('')
             return oper, tokenList[tokenList.index('}') + 1:]
 
         if tokenList[0] == '[':
             endPos = tokenList.index(']')
             oper = Operand(tokenList[0:endPos + 1])
             if endPos == len(tokenList) - 1:
-                return oper, ''
+                return oper, list('')
             return oper, tokenList[tokenList.index(']') + 1:]
 
         if tokenList[0] == '\\':
@@ -149,7 +203,15 @@ class RE:
                     midfix.insert(0, Operator('.'))
                     prechar = False
                 else:
-                    self.tokenList.append(oper)
+                    if oper.isSingleChar():
+                        self.tokenList.append(oper)
+                    else:
+                        midfix.insert(0, Operator(')'))
+                        for a in oper.getMultiChars():
+                            midfix.insert(0, Operand(a))
+                            midfix.insert(0, Operator('|'))
+                        midfix[0] = Operator('(')
+                        continue
                     prechar = True
             else:
                 if not oper.isLeftBracket():
@@ -212,6 +274,7 @@ class FA:
 
     def resetOperandList(self):
         self.operandList = []
+
     def merge(self, fa):
         len1 = len(self.graph)
         graph = list(self.graph)
@@ -369,7 +432,6 @@ class DFA:
 
         dfaState.append(start)
 
-
         while q.empty() == False:
             state = []
             curCol = q.get()
@@ -387,7 +449,6 @@ class DFA:
                 else:
                     state.append(dfaState.index(col))
             dfaStateID.append(state)
-
 
         startStates = []
         for s in range(0, len(dfaStateID)):
@@ -480,7 +541,7 @@ class DFA:
                     if len(newStates) == 0:
                         continue
 
-                    if len(newStates) ==1:
+                    if len(newStates) == 1:
                         if len(l) == len(newStates[newStates.keys()[0]]):
                             continue
                     cutStates.remove(l)
@@ -539,11 +600,12 @@ class DFAInstance:
 
 
 def main():
-    st = 'aa*((bab*a)*(a|b)b*)*'
+    st = '\d{2,}'
     r = RE(st)
-    print [ x.rule for x in r.getTokenList()]
+    print [x.rule for x in r.getTokenList()]
+
     dfa = DFA(NFA(RE(st)))
-    ins = DFAInstance(dfa, "ababbaababbbb")
+    ins = DFAInstance(dfa, "112345")
     print ins.validate()
     print '========'
     print dfa.dfa
